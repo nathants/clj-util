@@ -41,9 +41,10 @@
   (assert (-> path java.io.File. .exists not)))
 
 (defn ls-dir
-  [path]
+  [path & {:keys [hidden-files]}]
   (->> path
        java.io.File.
        .listFiles
        (map #(.getAbsolutePath %))
+       (filter #(->> % basename (re-find #"^\.") not (or hidden-files)))
        vec))
