@@ -48,3 +48,7 @@
        (map #(.getAbsolutePath %))
        (filter #(->> % basename (re-find #"^\.") not (or hidden-files)))
        vec))
+
+(defn path-exists
+  [path]
+  (-> path java.io.File. .exists))
