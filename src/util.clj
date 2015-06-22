@@ -19,9 +19,10 @@
   [parts]
   (apply str "/" (interpose "/" parts)))
 
+;; todo all this stuff works only with abs paths. should we also support rel paths?
 (defn path->parts
   [path]
-  (rest (s/split path #"/")))
+  (remove s/blank? (s/split path #"/")))
 
 (defn dirname
   [path]
