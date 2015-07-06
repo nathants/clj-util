@@ -10,9 +10,11 @@
 (defn load-conf
   [path]
   (let [conf (edn/read-string (slurp path))]
-    (fn [& ks]
-      (doto (get-in conf ks)
-        (-> nil? not (assert (str "there is no value for keys " (vec ks) " in config \"" path "\"")))))))
+    (with-meta
+      (fn [& ks]
+        (doto (get-in conf ks)
+          (-> nil? not (assert (str "there is no value for keys " (vec ks) " in config \"" path "\"")))))
+      {:data conf})))
 
 (defmacro str-format
   [& strs]

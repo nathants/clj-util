@@ -13,8 +13,9 @@
 
 (deftest test-load-conf
   (let [path (util/temp-path)
-        _ (spit path (str {:a "foo"
-                           :b {:c "blah"}}))
+        data {:a "foo"
+              :b {:c "blah"}}
+        _ (spit path (str data))
         conf (util/load-conf path)]
     (testing "keys"
       (is (= (conf :a) "foo")))
@@ -22,4 +23,6 @@
       (is (= (conf :b :c) "blah")))
     (testing "nil values, like a key miss, throws an error"
       (is (thrown? AssertionError (conf :missing)))
-      (is (thrown? AssertionError (conf :b :missing))))))
+      (is (thrown? AssertionError (conf :b :missing))))
+    (testing "conf data is attached to meta"
+      (is (= data (-> conf meta :data))))))
