@@ -1,5 +1,18 @@
 (ns util
-  (:require [clojure.string :as s]))
+  (:require [clojure.string :as s]
+            [clojure.edn :as edn]
+            [clojure.java.shell :as sh]))
+
+(defn temp-path
+  []
+  (.getAbsolutePath (java.io.File/createTempFile "temp" "")))
+
+(defn load-conf
+  [path]
+  (let [conf (edn/read-string (slurp path))]
+    (fn [& ks]
+      (doto (get-in conf ks)
+        (-> nil? not (assert (str "there is no value for keys " (vec ks) " in config \"" path "\"")))))))
 
 (defmacro str-format
   [& strs]
