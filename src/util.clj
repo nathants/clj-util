@@ -1,6 +1,7 @@
 (ns util
   (:require [clojure.string :as s]
             [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.java.shell :as sh]))
 
 (defn temp-path
@@ -68,3 +69,14 @@
 (defn path-exists
   [path]
   (-> path java.io.File. .exists))
+
+(defn line-seq-cleanup
+  [path]
+  ((fn f [^java.io.BufferedReader reader]
+     (let [line (.readLine reader)]
+       (if line
+         (cons line (lazy-seq (f reader)))
+         (do (.close reader)
+             (io/delete-file path)
+             nil))))
+   (io/reader path)))
