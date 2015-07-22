@@ -18,13 +18,19 @@
 (deftest test-load-confs
   (let [path (temp-path)
         data {:a "foo"
-              :b {:c "blah"}}
+              :b {:c "blah"}
+              :d nil
+              :e false}
         _ (spit path (str data))
         conf (util/load-confs path)]
+    (testing "nil is illegal as a value"
+      (is (thrown? AssertionError (conf :d))))
+    (testing "false is fine as a value"
+      (is (= false (conf :e))))
     (testing "keys"
       (is (= (conf :a) "foo")))
     (testing "nested keys"
-              (is (= (conf :b :c) "blah")))
+      (is (= (conf :b :c) "blah")))
     (testing "nil values, like a key miss, throws an error"
       (is (thrown? AssertionError (conf :missing)))
       (is (thrown? AssertionError (conf :b :missing))))
@@ -46,13 +52,11 @@
   (let [extra-conf (temp-path)
         base-conf (temp-path)]
     (testing "confs provided are searched left to right for values"
-      (spit base-conf (str {:a :val :b {:c :default-val}}))
-      (spit extra-conf (str {:b {:c :new-val}}))
+      (spit base-conf (str {:a :default-val}))
+      (spit extra-conf (str {:a :new-val}))
       (let [conf (util/load-confs extra-conf base-conf)]
-        (is (= :val (conf :a)))
-        (is (= :new-val (conf :b :c)))))
+        (is (= :new-val (conf :a)))))
     (testing "extra confs on the left must be overriding values that are already defined in confs on the right"
-      (spit base-conf (str {:a :val}))
       (spit extra-conf (str {:unknown-key :not-gonna-work}))
       (is (thrown? AssertionError (util/load-confs extra-conf base-conf))))))
 

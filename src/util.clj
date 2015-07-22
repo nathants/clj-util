@@ -29,8 +29,8 @@
           (mapv #(apply conf %) (keys-in (first confs)))))
     (with-meta
       (fn [& ks]
-        (doto (some #(get-in % ks) confs)
-          (-> nil? not (assert (str "there is no value for keys " (vec ks) " in paths \"" (vec paths) "\"")))))
+        (doto (->> confs (map #(get-in % ks)) (remove nil?) first)
+          (-> nil? not (assert (str "there is no value for keys " (vec ks) " in paths " (vec paths))))))
       {:confs confs})))
 
 (defn load-confs-edn-str
