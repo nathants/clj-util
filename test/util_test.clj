@@ -2,6 +2,10 @@
   (:require [clojure.test :refer :all]
             [util :as util]))
 
+(defn temp-path
+  []
+  (.getAbsolutePath (java.io.File/createTempFile "temp" "")))
+
 (deftest test-str-format
   (let [name1 "joe"
         name2 "bob"]
@@ -11,18 +15,51 @@
            (util/str-format "hey there #{name1}"
                        " and #{name2}!")))))
 
-(deftest test-load-conf
-  (let [path (util/temp-path)
+(deftest test-load-confs
+  (let [path (temp-path)
         data {:a "foo"
               :b {:c "blah"}}
         _ (spit path (str data))
-        conf (util/load-conf path)]
+        conf (util/load-confs path)]
     (testing "keys"
       (is (= (conf :a) "foo")))
     (testing "nested keys"
-      (is (= (conf :b :c) "blah")))
+              (is (= (conf :b :c) "blah")))
     (testing "nil values, like a key miss, throws an error"
       (is (thrown? AssertionError (conf :missing)))
       (is (thrown? AssertionError (conf :b :missing))))
     (testing "conf data is attached to meta"
-      (is (= data (-> conf meta :data))))))
+      (is (= [data] (-> conf meta :confs))))))
+
+(deftest test-load-confs-edn-str
+  (let [path (temp-path)
+        data {:a :default-val}]
+    (spit path (str data))
+    (testing "overriding a value from an edn string"
+      (let [conf (util/load-confs-edn-str "{:a :new-val}" path)]
+        (is (= :new-val (conf :a)))))
+    (testing "edn strings which read to nil are ignored"
+      (let [conf (util/load-confs-edn-str "   " path)]
+        (is (= :default-val (conf :a)))))))
+
+(deftest test-load-confs-multiple-paths
+  (let [extra-conf (temp-path)
+        base-conf (temp-path)]
+    (testing "confs provided are searched left to right for values"
+      (spit base-conf (str {:a :val :b {:c :default-val}}))
+      (spit extra-conf (str {:b {:c :new-val}}))
+      (let [conf (util/load-confs extra-conf base-conf)]
+        (is (= :val (conf :a)))
+        (is (= :new-val (conf :b :c)))))
+    (testing "extra confs on the left must be overriding values that are already defined in confs on the right"
+      (spit base-conf (str {:a :val}))
+      (spit extra-conf (str {:unknown-key :not-gonna-work}))
+      (is (thrown? AssertionError (util/load-confs extra-conf base-conf))))))
+
+(deftest test-keys-in
+  (is (= [[1 2]
+          [1 4]
+          [1 6 7]]
+         (util/keys-in {1 {2 :val
+                           4 :val
+                           6 {7 :val}}}))))

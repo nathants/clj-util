@@ -4,18 +4,44 @@
             [clojure.java.io :as io]
             [clojure.java.shell :as sh]))
 
-(defn temp-path
-  []
-  (.getAbsolutePath (java.io.File/createTempFile "temp" "")))
+(defn keys-in
+  "Return a list of all possible arguments to get-in for this map that would return non nil."
+  [m]
+  (->> ((fn f [k v]
+          (->> (if (map? v)
+                 (map #(f (cons (first %) k) (second %)) v)
+                 [k ::end])))
+        nil m)
+       flatten
+       (partition-by #(= % ::end))
+       (remove #(= % [::end]))
+       (map reverse)))
 
-(defn load-conf
-  [path]
-  (let [conf (edn/read-string (slurp path))]
+(defn load-confs
+  "Load configuration from edn in the provided paths. The paths are searched left to right,
+   so paths to the left can override values in paths to the right. You can only override values
+   which are defined, so the right most path defines the base schema. Nil return values always
+   throw an exception, so if you lookup a key which does not exist you will except."
+  [& paths]
+  (let [confs (mapv #(edn/read-string (slurp %)) paths)]
+    (or (= 1 (count paths))
+        (let [conf (apply load-confs (drop 1 paths))]
+          (mapv #(apply conf %) (keys-in (first confs)))))
     (with-meta
       (fn [& ks]
-        (doto (get-in conf ks)
-          (-> nil? not (assert (str "there is no value for keys " (vec ks) " in config \"" path "\"")))))
-      {:data conf})))
+        (doto (some #(get-in % ks) confs)
+          (-> nil? not (assert (str "there is no value for keys " (vec ks) " in paths \"" (vec paths) "\"")))))
+      {:confs confs})))
+
+(defn load-confs-edn-str
+  "Like load-confs, but takes an extra edn string which will be the left most path. This is useful
+   for exposing configuration via an edn string passed as an arg to a command line interface."
+  [edn-str & paths]
+  (if-not (edn/read-string edn-str)
+    (apply load-confs paths)
+    (let [path (.getAbsolutePath (java.io.File/createTempFile "temp" ""))]
+      (spit path edn-str)
+      (apply load-confs (cons path paths)))))
 
 (defmacro str-format
   [& strs]
@@ -25,17 +51,11 @@
         symbols (->> string (re-seq pattern) (map second) (map symbol) vec)]
     `(apply str (interleave ~parts ~(conj symbols "")))))
 
-(defmacro for-map
-  [bindings pair]
-  `(->> (for ~bindings ~pair)
-        (apply concat)
-        (apply hash-map)))
-
 (defn parts->path
   [parts]
   (apply str "/" (interpose "/" parts)))
 
-;; todo all this stuff works only with abs paths. should we also support rel paths?
+;; todo confs this stuff works only with abs paths. should we also support rel paths?
 (defn path->parts
   [path]
   (remove s/blank? (s/split path #"/")))
