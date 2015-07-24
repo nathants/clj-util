@@ -4,6 +4,12 @@
             [clojure.java.io :as io]
             [clojure.java.shell :as sh]))
 
+(defn merge-maps
+  "Merge maps respecting nested values."
+  [& maps]
+  (into {} (for [k (->> maps (map keys) (map set) (apply set/union))]
+             [k (apply merge (map #(get % k) maps))])))
+
 (defn keys-in
   "Return a list of all possible arguments to get-in for this map that would return non nil."
   [m]

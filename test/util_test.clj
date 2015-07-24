@@ -2,6 +2,12 @@
   (:require [clojure.test :refer :all]
             [util :as util]))
 
+(deftest test-merge-maps
+  (is (= {:a {:b 1 :c 2}}
+         (lib/merge-maps
+          {:a {:b 1}}
+          {:a {:c 2}}))))
+
 (defn temp-path
   []
   (.getAbsolutePath (java.io.File/createTempFile "temp" "")))
