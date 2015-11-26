@@ -106,3 +106,16 @@
              (io/delete-file path)
              nil))))
    (io/reader path)))
+
+(defn retry
+  "Retry a fn sleeping based on millis in a seq.
+  Retries until the seq is exhausted, then throws."
+  [f [ms-now & ms-rest]]
+  (if-let [result (try
+                    (f)
+                    (catch Exception ex
+                      (when-not ms-now
+                        (throw ex))))]
+    result
+    (do (Thread/sleep ms-now)
+        (recur f ms-rest))))
