@@ -119,3 +119,25 @@
     result
     (do (Thread/sleep ms-now)
         (recur f ms-rest))))
+
+(defn join-path
+  [base & [path & paths]]
+  (assert (not (re-find #"^/" (str path))) (str "path must be a relative, not: " path))
+  (if path
+    (apply join-path (str (s/replace (str base) #"/$" "") "/" path) paths)
+    base))
+
+(defn run
+  [& args]
+  (let [cmd (apply str (interpose " " args))
+        res (sh/sh "bash" "-c" cmd)]
+    (assert (-> res :exit (= 0)) (assoc res :cmd cmd))
+    (s/trim (:out res))))
+
+(defmacro with-tempdir
+  [_ name & forms]
+  `(let [~name (core/run "mktemp -d")]
+     (try
+       ~@forms
+       (finally
+         (core/run "rm -rf" ~name)))))
