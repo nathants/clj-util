@@ -1,5 +1,6 @@
 (ns util
   (:require [clojure.string :as s]
+            [me.raynes.fs :as fs]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.java.shell :as sh]))
@@ -141,3 +142,15 @@
        ~@forms
        (finally
          (core/run "rm -rf" ~name)))))
+
+(defn mkdir-spit
+  [path content & opts]
+  (fs/mkdirs (fs/parent path))
+  (apply spit path content opts))
+
+(defn indent
+  [n x]
+  (->> x
+    s/split-lines
+    (map #(str (apply str (repeat n " ")) %))
+    (s/join "\n")))
