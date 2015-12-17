@@ -75,6 +75,15 @@
   [path]
   (-> path path->parts last))
 
+(defn dirname
+  [path]
+  (s/replace path #"/.+$" ""))
+
+(defn basename
+  [path]
+  (s/replace path #".*/(.+)$" "$1"))
+
+
 (defn mk-parent-dirs
   [path]
   (-> path java.io.File. .getParentFile .mkdirs))
@@ -112,14 +121,16 @@
   "Retry a fn sleeping based on millis in a seq.
   Retries until the seq is exhausted, then throws."
   [f [ms-now & ms-rest]]
-  (if-let [result (try
-                    (f)
-                    (catch Exception ex
-                      (when-not ms-now
-                        (throw ex))))]
-    result
-    (do (Thread/sleep ms-now)
-        (recur f ms-rest))))
+  (let [[status res] (try
+                       [::success (f)]
+                       (catch Exception ex
+                         [::fail ex]))]
+    (condp = status
+      ::fail (if-not ms-now
+               (throw res)
+               (do (Thread/sleep ms-now)
+                   (recur f ms-rest)))
+      ::success res)))
 
 (defn join-path
   [base & [path & paths]]
