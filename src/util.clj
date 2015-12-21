@@ -3,7 +3,8 @@
             [me.raynes.fs :as fs]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.java.shell :as sh]))
+            [clojure.java.shell :as sh]
+            [me.raynes.conch.low-level :as csh]))
 
 (defn merge-maps
   "Merge maps respecting nested values."
@@ -138,6 +139,19 @@
   (if path
     (apply join-path (str (s/replace (str base) #"/$" "") "/" path) paths)
     base))
+
+
+;; TODO merge stderr/stdout
+(defn run
+  ;; todo merge stderr into stdout
+  [& cmds]
+  (let [cmd (s/join " " (map str cmds))
+        _ (println :cmd cmd)
+        proc (csh/proc "bash" "-c" cmd)
+        out-seq (-> proc :out io/reader line-seq)
+        _ (dorun (map println out-seq))]
+    (assert (-> proc :process .waitFor zero?) (str "cmd failed to exit 0: " cmd))
+    (s/join "\n" out-seq)))
 
 (defn run
   [& args]
