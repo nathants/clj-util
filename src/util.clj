@@ -76,14 +76,19 @@
   [path]
   (-> path path->parts last))
 
+(defn drop-trailing-slash
+  [path]
+  (s/replace path #"/$" ""))
+
 (defn dirname
   [path]
   (s/replace path #"/.+$" ""))
 
 (defn basename
   [path]
-  (s/replace path #".*/(.+)$" "$1"))
-
+  (-> path
+    (s/replace #"/$" "")
+    (s/replace #".*/(.+)$" "$1")))
 
 (defn mk-parent-dirs
   [path]
@@ -179,3 +184,17 @@
     s/split-lines
     (map #(str (apply str (repeat n " ")) %))
     (s/join "\n")))
+
+(defn parse-s3-url
+  [s3-url]
+  (let [[_ bucket path] (re-find #"s3://([^/]+)/(.+)?" s3-url)]
+    (assert bucket (str "bad s3-url, should be s3://bucket/path/..., not: " s3-url))
+    [bucket (or path "")]))
+
+(defn s3-bucket
+  [s3-url]
+  (first (parse-s3-url s3-url)))
+
+(defn s3-path
+  [s3-url]
+  (second (parse-s3-url s3-url)))
