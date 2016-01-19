@@ -198,3 +198,22 @@
 (defn s3-path
   [s3-url]
   (second (parse-s3-url s3-url)))
+
+(defn -cache-dir
+  []
+  (doto (str (System/getProperty "user.home") "/tmp")
+    (-> java.io.File. .mkdirs)))
+
+(defn -cache-path
+  [x]
+  (str (-cache-dir) "/disk_cache_" (hash x)))
+
+(defn memoize-disk
+  [f]
+  (fn [& args]
+    (let [path (-cache-path args)]
+      (if (-> path java.io.File. .exists)
+        (edn/read-string (slurp path))
+        (let [res (apply f args)]
+          (spit path (pr-str res))
+          res)))))
