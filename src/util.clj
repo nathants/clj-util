@@ -211,7 +211,7 @@
 (defn memoize-disk
   [f]
   (fn [& args]
-    (let [path (-cache-path args)]
+    (let [path (-cache-path (conj args (str f)))]
       (if (-> path java.io.File. .exists)
         (edn/read-string (slurp path))
         (let [res (apply f args)]
