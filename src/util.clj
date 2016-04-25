@@ -148,12 +148,11 @@
 
 ;; TODO merge stderr/stdout
 (defn run
-  ;; todo merge stderr into stdout
   [& cmds]
   (let [cmd (s/join " " (map str cmds))
         _ (println :cmd cmd)
-        proc (csh/proc "bash" "-c" cmd)
-        out-seq (-> proc :out io/reader line-seq)
+        proc (me.raynes.conch.low-level/proc "bash" "-c" cmd)
+        out-seq (-> proc :out clojure.java.io/reader line-seq)
         _ (dorun (map println out-seq))]
     (assert (-> proc :process .waitFor zero?) (str "cmd failed to exit 0: " cmd))
     (s/join "\n" out-seq)))
@@ -217,3 +216,8 @@
         (let [res (apply f args)]
           (spit path (pr-str res))
           res)))))
+
+(Thread/setDefaultUncaughtExceptionHandler
+ (reify Thread$UncaughtExceptionHandler
+   (uncaughtException [_ thread ex]
+     (timbre/error ex "Uncaught exception in" (.getName thread)))))
