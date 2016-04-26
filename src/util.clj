@@ -123,9 +123,19 @@
              nil))))
    (io/reader path)))
 
+(defn retries
+  [number & [exponent jitter]]
+  (->> (range number)
+    (map inc)
+    (map #(Math/pow % (or exponent 1.1)))
+    (map #(* ^double % 1000))
+    (map #(* ^double % ^double (+ 1 (* (or jitter 0.25) (rand)))))
+    (map long)))
+
 (defn retry
   "Retry a fn sleeping based on millis in a seq.
-  Retries until the seq is exhausted, then throws."
+  Retries until the seq is exhausted, then throws.
+  ie (retry f (retries 10))"
   [f [ms-now & ms-rest]]
   (let [[status res] (try
                        [::success (f)]
