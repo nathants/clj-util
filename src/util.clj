@@ -139,7 +139,7 @@
   [f [ms-now & ms-rest]]
   (let [[status res] (try
                        [::success (f)]
-                       (catch Exception ex
+                       (catch Throwable ex
                          [::fail ex]))]
     (condp = status
       ::fail (if-not ms-now
