@@ -80,6 +80,10 @@
   [path]
   (s/replace path #"/$" ""))
 
+(defn ensure-trailing-slash
+  [path]
+  (str (drop-trailing-slash path) "/"))
+
 (defn dirname
   [path]
   (s/replace path #"/.+$" ""))
