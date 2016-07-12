@@ -161,7 +161,7 @@
 
 
 ;; TODO merge stderr/stdout
-(defn run
+(defn run-stream
   [& cmds]
   (let [cmd (s/join " " (map str cmds))
         _ (println :cmd cmd)
