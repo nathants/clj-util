@@ -116,7 +116,18 @@
   [path]
   (-> path java.io.File. .exists))
 
+(defn line-seq-closing
+  "a line-seq that closes it's file when exhausted."
+  [path]
+  ((fn f [^java.io.BufferedReader reader]
+     (let [line (.readLine reader)]
+       (if line
+         (cons line (lazy-seq (f reader)))
+         (.close reader))))
+   (clojure.java.io/reader path)))
+
 (defn line-seq-cleanup
+  "a line-seq that closes and deletes it's file when exhausted."
   [path]
   ((fn f [^java.io.BufferedReader reader]
      (let [line (.readLine reader)]
