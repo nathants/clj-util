@@ -54,7 +54,10 @@
 
 (defn load-confs
   [& paths]
-  (let [last-is-str (->> paths first io/as-file .exists not)
+  (let [paths (if (empty? paths)
+                ["{}"]
+                paths)
+        last-is-str (->> paths first io/as-file .exists not)
         edn-str (if last-is-str
                   (first paths)
                   "")

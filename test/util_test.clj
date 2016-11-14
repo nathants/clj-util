@@ -19,7 +19,11 @@
            (util/str-format "hey there #{name1} and #{name2}!")))
     (is (= "hey there joe and bob!"
            (util/str-format "hey there #{name1}"
-                       " and #{name2}!")))))
+                            " and #{name2}!")))))
+
+(deftest load-confs-with-nothing
+  (let [conf (util/load-confs)]
+    (is (thrown? AssertionError (conf :no-keys-in-empty-conf)))))
 
 (deftest test-load-confs
   (let [path (temp-path)
