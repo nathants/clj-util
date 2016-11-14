@@ -2,8 +2,10 @@
   (:require [clojure.string :as s]
             [me.raynes.fs :as fs]
             [clojure.edn :as edn]
+            [taoensso.timbre :as timbre]
             [clojure.java.io :as io]
             [clojure.java.shell :as sh]
+            [clojure.set :as set]
             [me.raynes.conch.low-level :as csh]))
 
 (defn merge-maps
@@ -12,7 +14,7 @@
   (into {} (for [k (->> maps (map keys) (map set) (apply set/union))]
              [k (apply merge (map #(get % k) maps))])))
 
-(defn keys-in
+(defn -keys-in
   "Return a list of all possible arguments to get-in for this map that would return non nil."
   [m]
   (->> ((fn f [k v]
@@ -20,36 +22,50 @@
                  (map #(f (cons (first %) k) (second %)) v)
                  [k ::end])))
         nil m)
-       flatten
-       (partition-by #(= % ::end))
-       (remove #(= % [::end]))
-       (map reverse)))
+    flatten
+    (partition-by #(= % ::end))
+    (remove #(= % [::end]))
+    (map reverse)))
 
-(defn load-confs
-  "Load configuration from edn in the provided paths. The paths are searched left to right,
-   so paths to the left can override values in paths to the right. You can only override values
-   which are defined, so the right most path defines the base schema. Nil return values always
-   throw an exception, so if you lookup a key which does not exist you will except."
+
+(defn -keys-in
+  [m]
+  (->> ((fn f [k v]
+          (->> (if (map? v)
+                 (map #(f (cons (first %) k) (second %)) v)
+                 [k ::end])))
+        nil m)
+    flatten
+    (partition-by #(= % ::end))
+    (remove #(= % [::end]))
+    (map reverse)))
+
+(defn -load-confs
   [& paths]
   (let [confs (mapv #(edn/read-string (slurp %)) paths)]
     (or (= 1 (count paths))
-        (let [conf (apply load-confs (drop 1 paths))]
-          (mapv #(apply conf %) (keys-in (first confs)))))
+        (let [conf (apply -load-confs (drop 1 paths))]
+          (mapv #(apply conf %) (-keys-in (first confs)))))
     (with-meta
       (fn [& ks]
         (doto (->> confs (map #(get-in % ks)) (remove nil?) first)
           (-> nil? not (assert (str "there is no value for keys " (vec ks) " in paths " (vec paths))))))
       {:confs confs})))
 
-(defn load-confs-edn-str
-  "Like load-confs, but takes an extra edn string which will be the left most path. This is useful
-   for exposing configuration via an edn string passed as an arg to a command line interface."
-  [edn-str & paths]
-  (if-not (edn/read-string edn-str)
-    (apply load-confs paths)
-    (let [path (.getAbsolutePath (java.io.File/createTempFile "temp" ""))]
-      (spit path edn-str)
-      (apply load-confs (cons path paths)))))
+(defn load-confs
+  [& paths]
+  (let [last-is-str (->> paths first io/as-file .exists not)
+        edn-str (if last-is-str
+                  (first paths)
+                  "")
+        paths (if last-is-str
+                (rest paths)
+                paths)]
+    (if-not (edn/read-string edn-str)
+      (apply -load-confs paths)
+      (let [path (.getAbsolutePath (java.io.File/createTempFile "temp" ""))]
+        (spit path edn-str)
+        (apply -load-confs (cons path paths))))))
 
 (defmacro str-format
   [& strs]

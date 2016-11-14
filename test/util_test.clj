@@ -4,7 +4,7 @@
 
 (deftest test-merge-maps
   (is (= {:a {:b 1 :c 2}}
-         (lib/merge-maps
+         (util/merge-maps
           {:a {:b 1}}
           {:a {:c 2}}))))
 
@@ -48,10 +48,10 @@
         data {:a :default-val}]
     (spit path (str data))
     (testing "overriding a value from an edn string"
-      (let [conf (util/load-confs-edn-str "{:a :new-val}" path)]
+      (let [conf (util/load-confs "{:a :new-val}" path)]
         (is (= :new-val (conf :a)))))
     (testing "edn strings which read to nil are ignored"
-      (let [conf (util/load-confs-edn-str "   " path)]
+      (let [conf (util/load-confs "   " path)]
         (is (= :default-val (conf :a)))))))
 
 (deftest test-load-confs-multiple-paths
@@ -62,6 +62,11 @@
       (spit extra-conf (str {:a :new-val}))
       (let [conf (util/load-confs extra-conf base-conf)]
         (is (= :new-val (conf :a)))))
+    (testing "left most value can be an edn-str"
+      (spit base-conf (str {:a :default-val}))
+      (spit extra-conf (str {:a :new-val}))
+      (let [conf (util/load-confs "{:a :newest-val}" extra-conf base-conf)]
+        (is (= :newest-val (conf :a)))))
     (testing "extra confs on the left must be overriding values that are already defined in confs on the right"
       (spit extra-conf (str {:unknown-key :not-gonna-work}))
       (is (thrown? AssertionError (util/load-confs extra-conf base-conf))))))
@@ -70,6 +75,6 @@
   (is (= [[1 2]
           [1 4]
           [1 6 7]]
-         (util/keys-in {1 {2 :val
-                           4 :val
-                           6 {7 :val}}}))))
+         (util/-keys-in {1 {2 :val
+                            4 :val
+                            6 {7 :val}}}))))
