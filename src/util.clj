@@ -8,12 +8,6 @@
             [clojure.set :as set]
             [me.raynes.conch.low-level :as csh]))
 
-(defn merge-maps
-  "Merge maps respecting nested values."
-  [& maps]
-  (into {} (for [k (->> maps (map keys) (map set) (apply set/union))]
-             [k (apply merge (map #(get % k) maps))])))
-
 (defmacro str-format
   [& strs]
   (let [string (apply str strs)
