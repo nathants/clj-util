@@ -14,7 +14,7 @@
         pattern #"\#\{([^\}]+)\}"
         parts (s/split string pattern)
         symbols (->> string (re-seq pattern) (map second) (map symbol) vec)]
-    `(apply str (interleave ~parts ~(conj symbols "")))))
+    `(apply str ~(vec (interleave parts (conj symbols ""))))))
 
 (defn parts->path
   [parts]
