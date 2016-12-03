@@ -12,8 +12,8 @@
   [& strs]
   (let [string (apply str strs)
         pattern #"\#\{([^\}]+)\}"
-        parts (s/split string pattern)
-        symbols (->> string (re-seq pattern) (map second) (map symbol) vec)]
+        symbols (->> string (re-seq pattern) (map second) (map symbol) vec)
+        parts (take (inc (count symbols)) (concat (s/split string pattern) (repeat "")))]
     `(apply str ~(vec (interleave parts (conj symbols ""))))))
 
 (defn parts->path
