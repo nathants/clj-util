@@ -135,6 +135,8 @@
         _ (println :cmd cmd)
         proc (me.raynes.conch.low-level/proc "bash" "-c" cmd)
         out-seq (-> proc :out clojure.java.io/reader line-seq)
+        err-seq (-> proc :err clojure.java.io/reader line-seq)
+        _ (future (dorun (map println out-seq)))
         _ (dorun (map println out-seq))]
     (assert (-> proc :process .waitFor zero?) (str "cmd failed to exit 0: " cmd))
     (s/join "\n" out-seq)))
