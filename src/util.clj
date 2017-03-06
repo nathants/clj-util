@@ -141,11 +141,24 @@
     (assert (-> proc :process .waitFor zero?) (str "cmd failed to exit 0: " cmd))
     (s/join "\n" out-seq)))
 
-(defn run
-  [& args]
-  (let [cmd (apply str (interpose " " args))
-        res (sh/sh "bash" "-c" cmd)]
+(defn run [& args]
+  (let [[in cmd] (if (= :in (first args))
+                   [(second args) (apply str (interpose " " (drop 2 args)))]
+                   [nil (apply str (interpose " " args))])
+        res (if in
+              (clojure.java.shell/sh "bash" "-c" cmd :in in)
+              (clojure.java.shell/sh "bash" "-c" cmd))]
     (assert (-> res :exit (= 0)) (assoc res :cmd cmd))
+    (s/trim (:out res))))
+
+(defn run-raw [& args]
+  (let [[in args] (if (= :in (first args))
+                    [(second args) (drop 2 args)]
+                    [nil args])
+        res (if in
+              (apply clojure.java.shell/sh (concat args [:in in]))
+              (apply clojure.java.shell/sh args))]
+    (assert (-> res :exit (= 0)) (assoc res :cmd args))
     (s/trim (:out res))))
 
 (defmacro with-tempdir
